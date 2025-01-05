@@ -1,0 +1,13 @@
+astroid==3.3.8
+dill==0.3.9
+flake8==7.1.1
+isort==5.13.2
+mccabe==0.7.0
+platformdirs==4.3.6
+plyvel-ci==1.5.1
+# Editable install with no version control (plyvelmp==0.1)
+-e /home/mint/Work/plyvel-mp
+pycodestyle==2.12.1
+pyflakes==3.2.0
+pylint==3.3.3
+tomlkit==0.13.2

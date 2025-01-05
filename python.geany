@@ -1,0 +1,62 @@
+[file_prefs]
+final_new_line=true
+ensure_convert_new_lines=false
+strip_trailing_spaces=false
+replace_tabs=false
+
+[indentation]
+indent_width=4
+indent_type=0
+indent_hard_tab_width=8
+detect_indent=false
+detect_indent_width=false
+indent_mode=2
+
+[project]
+name=plyvel-mp
+base_path=./
+description=
+file_patterns=*.py;
+
+[long line marker]
+long_line_behaviour=1
+long_line_column=72
+
+[files]
+current_page=0
+FILE_NAME_0=1182;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fsoftlock.py;0;4
+FILE_NAME_1=155;None;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2F.gitignore;0;4
+FILE_NAME_2=1820;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fbatch.py;0;4
+FILE_NAME_3=551;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Frandomaccess.py;0;4
+FILE_NAME_4=1064;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fiterator.py;0;4
+FILE_NAME_5=49;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2FREADME.md;0;4
+FILE_NAME_6=1018;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2FDEV.md;0;4
+FILE_NAME_7=336;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fsetup.py;0;4
+FILE_NAME_8=6264;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fdb.py;0;4
+FILE_NAME_9=9792;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fmdb.py;0;4
+FILE_NAME_10=66;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2F__init__.py;0;4
+FILE_NAME_11=0;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2F__init__.py;0;4
+
+[VTE]
+last_dir=/home/mint/Work/plyvel-mp/test
+
+[editor]
+line_wrapping=false
+line_break_column=72
+auto_continue_multiline=false
+
+[build-menu]
+EX_00_LB=_Execute
+EX_00_CM=bash -c "source '%p'/.venv/bin/activate && python -i '%d/%f' && exit"
+EX_00_WD=%p
+PythonFT_00_LB=Lint
+PythonFT_00_CM=%p/.venv/bin/pylint  --output-format=parseable --reports=n --enable-all-extensions --notes=TODO,FIXME,DEBUG --generated-members=dummy.* --ignored-modules=dummy --extension-pkg-whitelist=dummy --disable=C0325,C2701,C3001,C0321,C0103,C0301,C0302,C0305,C0303,C0114,C0115,C0116,C0415,C0410,C0199,C2001,W0212,W0301,W0603,W0149,W1203,W0107,W0246,W0125,W0703,W0105,W0717,W0160,W0702,R0903,R1260,R1705,R5501,R0911,R0912,R0901,R0914,R1702,R0915,R5601,R0902,R0913,R1715,R1714,R6103,R1732,R2004,W2901,R2044,R0917 "%d/%f"
+PythonFT_00_WD=%p
+PythonFT_01_LB=Check
+PythonFT_01_CM=%p/.venv/bin/flake8 --ignore=ASN001,W291,W391,W293,W504,W503,E201,E202,E241,E305,E401,E501,E701,E704,E702,E703,E222,E303,E116,E114,E266,E741,E302,E731,E251,E221,E722,E275,F722,F821 "%f"
+PythonFT_01_WD=%d
+Pythonerror_regex=([^:]+):([0-9]+):([0-9:]+)? .*
+filetypes=Python;
+PythonFT_02_LB=Compile
+PythonFT_02_CM=bash -c "source '%p'/.venv/bin/activate && python -m py_compile '%f'"
+PythonFT_02_WD=%d
