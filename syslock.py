@@ -12,7 +12,7 @@ class SysLock:
         XXX НЕ рекурсивная
     """
 
-    SALT = __qualname__ + 'xTRxcJTsFYzMNsLd'
+    SALT = __qualname__ + 'hTRxcJTsFYzMNsLd'
     
     TICK = 0.00001
 
@@ -35,8 +35,9 @@ class SysLock:
         
     def release(self):
         if not self.shm:
-            raise RuntimeError("release unlocked syslock");  # По аналогии с threading.Lock
+            raise RuntimeError("release unlocked syslock");  # ValueError: semaphore or lock released too many times
 
+        self.shm.close()
         self.shm.unlink()
         self.shm = None
 
@@ -46,5 +47,5 @@ class SysLock:
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        self.release()        
+        self.release()
     

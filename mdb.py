@@ -137,6 +137,10 @@ class MDB:
     def __clr_locks(shm_buf):
         shm_buf[MDB.__seek_lock(0): MDB.__seek_lock(MDB.MAX_PROCESSES - 1) + 1] = bytes([False] * MDB.MAX_PROCESSES)
             
+
+
+    __maintainer_proc = None
+
         
     def __init__(self, path='DB'):
         
@@ -144,9 +148,7 @@ class MDB:
 
         self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '')
 
-        self.__process = None
-
-        self.shm = None; self.shm_creator = False; self.index = -1
+        self.shm = None; self.index = -1
 
         with SysLock(self.salt):
             try:
@@ -155,21 +157,31 @@ class MDB:
                 logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
                 
             except FileNotFoundError:
-                # Создание нового SharedMemory. FileExistsError не может быть (мы под системной блокировкой ОС)
-                if not multiprocessing.parent_process():
-                    self.shm = shared_memory.SharedMemory(
-                        name=self.salt, create=True,
-                        size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
-                    )
-                    
-                    self.shm_creator = True
-                    logging.info(f"Create SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
+                # Обслуживающий процесс еще не запущен - запускаем и подключаемся к SharedMemory
 
-                else:
-                    # XXX Это необходимо чтобы предсказуемо запустить процесс обслуживания после первой блокировки первого слота
-                    #     (кто-то должен контролировать когда завершится maintainer, так как он завершается сам при пустых слотах)
+                if multiprocessing.parent_process():
                     raise RuntimeError("Only Main Process must create SharedMemory") from None
+                
+                MDB.__maintainer_proc = multiprocessing.Process(
+                    target=maintainer,
+                    daemon=False,
+                    kwargs={
+                        # Передаем все что нужно (для всех способов создания дочернего процесса)
+                        'db_path': self.path, 'shm_name': self.salt,
+                    }
+                )
+                
+                MDB.__maintainer_proc.start()
 
+                # Должны не выходя из блокировки дождаться подключения к SharedMemory
+
+                while not self.shm:
+                    sleep(MDB.TICK)
+                    try:
+                        self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                        logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
+                    except FileNotFoundError:
+                        pass
                     
             # Если мы дошли сюда, то нужно присоединится к свободному слоту данных
             # Если слоты исчерпаны то ждем освобождения вечно и под системной блокировкой (другие ждут выше на SysLock)
@@ -187,23 +199,6 @@ class MDB:
             self.index = self.index % MDB.MAX_PROCESSES;  # Индекс слота для __seek()
             logging.info(f"Capture DB Slot {self.index}, process {multiprocessing.current_process().name}")
 
-        # SysLock снята и будет сниматься пока не исчерпаются слоты
-
-        if self.shm_creator:
-            # Запуск обслуживания запросов.
-            # Один слот ка минимум к этому моменту захвачен и обслуживающий процесс не может внезапно завершиться
-            self.__process = multiprocessing.Process(
-                target=maintainer,
-                daemon=False,
-                kwargs={
-                    # Передаем все что нужно (для всех способов создания дочернего процесса)
-                    'db_path':      self.path, 'shm_name':     self.salt,
-                    
-                    'shm':          self.shm,
-                }
-            )
-            
-            self.__process.start()
 
 
 
@@ -228,17 +223,25 @@ class MDB:
         
             
     @staticmethod
-    def __maintainer(*, db_path, shm_name, shm):  # pylint: disable=W0238,W0613
+    def __maintainer(*, db_path, shm_name):  # pylint: disable=W0238,W0613
         """
             Задача быстро без ожиданий обрабатывать заявки обращения к DB
             (из одного процесса levelDB поддерживает рандомный доступ)
         """
         import signal
-        
-        # Здесь мы аттачимся к уже созданному владельцем SharedMemory (здесь владелиц не отличим от остальных)
 
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
+
+        # Создание нового SharedMemory. FileExistsError не может быть (возможность проверяется под системной блокировкой ОС)
+        
+        shm = shared_memory.SharedMemory(
+            name=shm_name, create=True,
+            size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
+        )
+            
+        logging.info(f"Create SharedMemory {shm.name}, process {multiprocessing.current_process().name}")
+        
 
 
         def _put_responce(index, data: dict):
@@ -417,7 +420,7 @@ class MDB:
                             finally:
                                 batches[i].close(); batches[i] = None
 
-                        shm.buf[MDB.__seek_lock(i)] = False;  # Слот освобожден для новых захватов
+                        shm.buf[MDB.__seek_lock(i)] = False;  # Слот освобожден для новых захватов. 1 байт - атомарная операция
 
 
                 sleep(MDB.TICK)
@@ -441,6 +444,7 @@ class MDB:
             MDB.__clr_locks(shm.buf)
 
             try:
+                shm.close()
                 shm.unlink()
             except:
                 pass
