@@ -6,11 +6,13 @@ import logging, multiprocessing, os, warnings
 
 from multiprocessing import shared_memory, resource_tracker
 
-from time import sleep, time
+from time import sleep
 
 from ast import literal_eval
 
 from .db import DB
+
+from .syslock import SysLock
 
 
 class ExhaustedError(RuntimeError): pass
@@ -64,9 +66,8 @@ class MDB:
 
 
         Формат SharedMemory:
-            [ lock0, lock1, ...,    uid0, uid1, ...,    state0, state1, ...,    data0, data1, ... ],
+            [ lock0, lock1, ...,    state0, state1, ...,    data0, data1, ... ],
             где lock  - флаги захваченных процессами слотов;
-                uid   - данные разрешения коллизий при захвате;
                 state - байт состояния для синхронизации: 0 - idle, 1 - request, 2 - responce;
                 data  - данные ввода/вывода в литеральных b-строках (образованных от словаря);
     """
@@ -78,12 +79,12 @@ class MDB:
     assert BLOCK_SIZE >= 512
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
-    UID_SIZE = 32; TICK = 0.00001;
+    TICK = SysLock.TICK = 0.00001
 
-    assert UID_SIZE % 2 == 0; assert TICK > 0.0000001;
+    assert TICK > 0.0000001
 
 
-    MAX_PROCESSES = 24;  # Определяет размер SharedMemory для обслуживания процессов (максимальное число процессов)
+    MAX_PROCESSES = 24;  # Определяет размер SharedMemory для обслуживания процессов без очереди
 
     
     STATE_IDLE, STATE_REQUEST, STATE_RESPONCE = range(3);  # XXX b'\0'[0] == 0, b'\1'[0] == 1, ...
@@ -91,16 +92,13 @@ class MDB:
     LOCK_FREE, LOCK_LOCK, LOCK_CLEAN = range(3);           # False, True, 2
 
     @staticmethod
-    def __seek_lock(index): return 0 + (index % MDB.MAX_PROCESSES)
-
-    @staticmethod
-    def __seek_uid(index): return 0 + MDB.MAX_PROCESSES + (index % MDB.MAX_PROCESSES) * MDB.UID_SIZE
+    def __seek_lock(index): return (index % MDB.MAX_PROCESSES)
     
     @staticmethod
-    def __seek_state(index): return 0 + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.UID_SIZE + (index % MDB.MAX_PROCESSES)
+    def __seek_state(index): return MDB.MAX_PROCESSES + (index % MDB.MAX_PROCESSES)
             
     @staticmethod
-    def __seek_data(index): return 0 + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.UID_SIZE + MDB.MAX_PROCESSES + (index % MDB.MAX_PROCESSES) * MDB.BLOCK_SIZE
+    def __seek_data(index): return MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + (index % MDB.MAX_PROCESSES) * MDB.BLOCK_SIZE
 
 
     @staticmethod
@@ -138,10 +136,6 @@ class MDB:
     @staticmethod
     def __clr_locks(shm_buf):
         shm_buf[MDB.__seek_lock(0): MDB.__seek_lock(MDB.MAX_PROCESSES - 1) + 1] = bytes([False] * MDB.MAX_PROCESSES)
-
-    @staticmethod
-    def __clr_uids(shm_buf):
-        shm_buf[MDB.__seek_uid(0): MDB.__seek_uid(MDB.MAX_PROCESSES - 1) + MDB.UID_SIZE] = b'\0' * MDB.UID_SIZE * MDB.MAX_PROCESSES
             
         
     def __init__(self, path='DB'):
@@ -151,102 +145,53 @@ class MDB:
         self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '')
 
         self.__process = None
-        
-        self.__uid = (u := os.urandom(MDB.UID_SIZE // 2)) + u;   # Дубликат справа играет роль контрольной суммы
 
         self.shm = None; self.shm_creator = False; self.index = -1
 
-        try:
-            # Аттач к существующей SharedMemory
-            self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
-            logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
-            
-        except FileNotFoundError:
-            # Создание нового SharedMemory
-            if not multiprocessing.parent_process():
-                try:
+        with SysLock(self.salt):
+            try:
+                # Аттач к существующей SharedMemory
+                self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
+                
+            except FileNotFoundError:
+                # Создание нового SharedMemory. FileExistsError не может быть (мы под системной блокировкой ОС)
+                if not multiprocessing.parent_process():
                     self.shm = shared_memory.SharedMemory(
                         name=self.salt, create=True,
-                        size= 0 + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.UID_SIZE + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
+                        size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
                     )
                     
                     self.shm_creator = True
                     logging.info(f"Create SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
 
-                except FileExistsError:  # Может быть в мультипроцессной среде (одновременный пуск нескольких приложений)
-                    self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
-                    logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
-            else:
-                # XXX Это необходимо чтобы предсказуемо запустить процесс обслуживания после первой блокировки первого слота
-                raise RuntimeError("Only Main Process must create SharedMemory") from None
+                else:
+                    # XXX Это необходимо чтобы предсказуемо запустить процесс обслуживания после первой блокировки первого слота
+                    #     (кто-то должен контролировать когда завершится maintainer, так как он завершается сам при пустых слотах)
+                    raise RuntimeError("Only Main Process must create SharedMemory") from None
 
                     
-        # Если мы дошли сюда, то нужно разрешая возможную коллизию, присоединится к свободному слоту данных
-        # Пытаемся захватить подряд свободные слоты до тех пор пока либо не обнаружим захват другим процессом,
-        # либо не захватим сами, либо не исчерпаются свободные слоты
-
-        
-        buf = self.shm.buf
-        for idx in range(MDB.MAX_PROCESSES**2):
-            # XXX Мы не можем исключить пропуск слота во время разрешения коллизии и нужно пытаться снова по кругу
-            
-            seek = self.__seek_uid(idx)
-            
+            # Если мы дошли сюда, то нужно присоединится к свободному слоту данных
+            # Если слоты исчерпаны то ждем освобождения вечно и под системной блокировкой (другие ждут выше на SysLock)
+            # После присоединения выходим из блокировки давая дорогу другим ожидающим
             captured = False
-            
             while not captured:
-                st = time(); dt = 0.0
-                
-                locked = buf[self.__seek_lock(idx)]
-                if not locked:
-                
-                    uid = bytes(buf[seek: seek + MDB.UID_SIZE])
-                    if (uid == b'\0' * MDB.UID_SIZE or uid[0: MDB.UID_SIZE // 2] != uid[MDB.UID_SIZE // 2: MDB.UID_SIZE]):
-                        # Либо свободный слот либо коллизионная борьба за захват
-                        
-                        # for i in range(MDB.UID_SIZE): buf[seek + i] = (buf[seek + i] ^ uid[i]) ^ self.__uid[i];  # Обнуляем мусор и добавляем uid
-                        buf[seek: seek + MDB.UID_SIZE] = self.__uid
+                for self.index, locked in enumerate(MDB.__get_locks(self.shm.buf)):
+                    if not locked:  # Есть свободный слот
+                        self.shm.buf[MDB.__seek_lock(self.index)] = captured = True
+                        break
+                else:
+                    # Нужно ждать лучших времен
+                    sleep(MDB.TICK)
 
-                        dt = time() - st;  # Оценка времени захвата
-                        
-                        sleep(MDB.TICK + dt * (1 + os.urandom(1)[0] / 256 * MDB.MAX_PROCESSES));  # Случайная пауза для разрешения коллизии
+            self.index = self.index % MDB.MAX_PROCESSES;  # Индекс слота для __seek()
+            logging.info(f"Capture DB Slot {self.index}, process {multiprocessing.current_process().name}")
 
-                        continue;  # На перепроверку
-                        
-                    # Решаем захватили ли мы или другой процесс
-                    
-                    if uid == self.__uid:
-                        # XXX Это гарантировано только для одного процесса и только в этой точке кода
-                        
-                        buf[self.__seek_lock(idx)] = captured = True
-
-                        continue
-
-                    # Нужно подтереть за собой мусор и перейти к следующему слоту
-                    # for i in range(MDB.UID_SIZE): buf[seek + i] = (buf[seek + i] ^ uid[i])
-                    buf[seek: seek + MDB.UID_SIZE] = b'\0' * MDB.UID_SIZE
-                        
-                # Переход к следующему idx
-                break
-                    
-            else:
-                break;  # Успешный захват
-            
-
-        else:
-            # Исчерпаны слоты
-            # raise RuntimeError("Ran out of data slots in SharedMemory")
-            raise ExhaustedError("Ran out of data slots in SharedMemory")
-
-    
-        self.index = idx % MDB.MAX_PROCESSES;  # Индекс слота для __seek()
-
-        logging.info(f"Capture DB Slot {idx}, process {multiprocessing.current_process().name}")
-
+        # SysLock снята и будет сниматься пока не исчерпаются слоты
 
         if self.shm_creator:
             # Запуск обслуживания запросов.
-            # Один слот ка минимум к этому моменту захвачен и обслуживающий процесс знает когда ему завершится
+            # Один слот ка минимум к этому моменту захвачен и обслуживающий процесс не может внезапно завершиться
             self.__process = multiprocessing.Process(
                 target=maintainer,
                 daemon=False,
@@ -261,11 +206,13 @@ class MDB:
             self.__process.start()
 
 
+
     def close(self):
-        # Нужно для освобождения слота (обнуления данных захвата слота).
+        # Нужно для освобождения слота (обнуления захвата слота).
         if self.shm:
             if self.index >= 0:
-                self.shm.buf[self.__seek_lock(self.index)] = MDB.LOCK_CLEAN;  # Закрытие итераторов и только потом обнуление блокировок
+                # Закрытие итераторов и только потом обнуление блокировок (в maintainer-е)
+                self.shm.buf[MDB.__seek_lock(self.index)] = MDB.LOCK_CLEAN
 
             try:
                 self.shm.close()
@@ -286,14 +233,9 @@ class MDB:
             Задача быстро без ожиданий обрабатывать заявки обращения к DB
             (из одного процесса levelDB поддерживает рандомный доступ)
         """
-        
         import signal
         
-
         # Здесь мы аттачимся к уже созданному владельцем SharedMemory (здесь владелиц не отличим от остальных)
-        # shm = shared_memory.SharedMemory(shm_name, create=False)
-        # logging.info(f"Open SharedMemory {shm.name}, maintainer {multiprocessing.current_process().name}")
-
 
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
@@ -475,11 +417,7 @@ class MDB:
                             finally:
                                 batches[i].close(); batches[i] = None
 
-
-                        seek_uid = MDB.__seek_uid(i)
-                        shm.buf[seek_uid: seek_uid + MDB.UID_SIZE] = b'\0' * MDB.UID_SIZE
-                        shm.buf[MDB.__seek_lock(i)] = False
-
+                        shm.buf[MDB.__seek_lock(i)] = False;  # Слот освобожден для новых захватов
 
 
                 sleep(MDB.TICK)
@@ -487,7 +425,7 @@ class MDB:
         finally:
 
             # По идеи здесь any(__get_locks[shm.buf]) == False
-            # Но на всякий непредвиденный случай (исключений)
+            # Но на всякий непредвиденный случай (исключений), чтобы ничего в памяти не висело
             
             for i, it in enumerate(iterators):
                 if it: it.close(); iterators[i] = None
@@ -500,7 +438,6 @@ class MDB:
                     finally:
                         bt.close(); batches[i] = None
 
-            MDB.__clr_uids(shm.buf)
             MDB.__clr_locks(shm.buf)
 
             try:
