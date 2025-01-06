@@ -5,6 +5,7 @@ import struct
 from multiprocessing import shared_memory
 from time import sleep
 
+
 class SysLock:
     """
         Кросплатформенная альтернатива именованным мьютексам и файловым блокировкам

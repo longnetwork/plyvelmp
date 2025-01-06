@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 
-import logging, multiprocessing, os, warnings
-
-from multiprocessing import shared_memory, resource_tracker
+import logging, os
+from multiprocessing import shared_memory, current_process, parent_process, Process
 
 from time import sleep
 
@@ -23,6 +22,7 @@ class ExhaustedError(RuntimeError): pass
 # warnings.filterwarnings('ignore')
 # with warnings.catch_warnings(action="ignore"): ...
 # warnings.simplefilter("ignore")
+# FIXME В python3.11 еще нету опции track=False при создании SharedMemory
 
 
 def maintainer(**kwargs):  # Для spawn - target процесса через жопу Била Гейтса
@@ -154,15 +154,15 @@ class MDB:
             try:
                 # Аттач к существующей SharedMemory
                 self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
-                logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
+                logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                 
             except FileNotFoundError:
                 # Обслуживающий процесс еще не запущен - запускаем и подключаемся к SharedMemory
 
-                if multiprocessing.parent_process():
+                if parent_process():
                     raise RuntimeError("Only Main Process must create SharedMemory") from None
                 
-                MDB.__maintainer_proc = multiprocessing.Process(
+                MDB.__maintainer_proc = Process(
                     target=maintainer,
                     daemon=False,
                     kwargs={
@@ -179,10 +179,10 @@ class MDB:
                     sleep(MDB.TICK)
                     try:
                         self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
-                        logging.info(f"Attach SharedMemory {self.shm.name}, process {multiprocessing.current_process().name}")
+                        logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                     except FileNotFoundError:
                         pass
-                    
+
             # Если мы дошли сюда, то нужно присоединится к свободному слоту данных
             # Если слоты исчерпаны то ждем освобождения вечно и под системной блокировкой (другие ждут выше на SysLock)
             # После присоединения выходим из блокировки давая дорогу другим ожидающим
@@ -197,10 +197,10 @@ class MDB:
                     sleep(MDB.TICK)
 
             self.index = self.index % MDB.MAX_PROCESSES;  # Индекс слота для __seek()
-            logging.info(f"Capture DB Slot {self.index}, process {multiprocessing.current_process().name}")
+            logging.info(f"Capture DB Slot {self.index}, process {current_process().name}")
+            
 
-
-
+        
 
     def close(self):
         # Нужно для освобождения слота (обнуления захвата слота).
@@ -240,8 +240,7 @@ class MDB:
             size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
         )
             
-        logging.info(f"Create SharedMemory {shm.name}, process {multiprocessing.current_process().name}")
-        
+        logging.info(f"Create SharedMemory {shm.name}, process {current_process().name}")
 
 
         def _put_responce(index, data: dict):
@@ -449,7 +448,7 @@ class MDB:
             except:
                 pass
             
-            logging.info(f"Clean SharedMemory {shm.name}, maintainer {multiprocessing.current_process().name}")
+            logging.info(f"Clean SharedMemory {shm.name}, maintainer {current_process().name}")
 
             # db.close()
 
