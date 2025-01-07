@@ -3,7 +3,7 @@
 
 
 import logging, os
-from multiprocessing import shared_memory, current_process, parent_process, Process
+from multiprocessing import current_process, parent_process, Process
 
 from time import sleep
 
@@ -12,17 +12,10 @@ from ast import literal_eval
 from .db import DB
 
 from .syslock import SysLock
+from .shm import SharedMemory
 
 
 class ExhaustedError(RuntimeError): pass
-
-
-# ISSUE UserWarning: resource_tracker: There appear to be 1 leaked shared_memory objects to clean up at shutdown
-# resource_tracker.unregister(self.shm._name, 'shared_memory')
-# warnings.filterwarnings('ignore')
-# with warnings.catch_warnings(action="ignore"): ...
-# warnings.simplefilter("ignore")
-# FIXME В python3.11 еще нету опции track=False при создании SharedMemory
 
 
 def maintainer(**kwargs):  # Для spawn - target процесса через жопу Била Гейтса
@@ -153,7 +146,7 @@ class MDB:
         with SysLock(self.salt):
             try:
                 # Аттач к существующей SharedMemory
-                self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                self.shm = SharedMemory(name=self.salt, create=False)
                 logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                 
             except FileNotFoundError:
@@ -178,7 +171,7 @@ class MDB:
                 while not self.shm:
                     sleep(MDB.TICK)
                     try:
-                        self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                        self.shm = SharedMemory(name=self.salt, create=False)
                         logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                     except FileNotFoundError:
                         pass
@@ -235,7 +228,7 @@ class MDB:
 
         # Создание нового SharedMemory. FileExistsError не может быть (возможность проверяется под системной блокировкой ОС)
         
-        shm = shared_memory.SharedMemory(
+        shm = SharedMemory(
             name=shm_name, create=True,
             size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
         )
@@ -469,8 +462,7 @@ class MDB:
         
         while self.shm.buf[_lock]:
             if self.shm.buf[_state] != MDB.STATE_RESPONCE:
-                try: sleep(MDB.TICK)
-                except: pass
+                sleep(MDB.TICK)
             else:
                 break
         else:

@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import struct
-from multiprocessing import shared_memory
 from time import sleep
+
+from .shm import SharedMemory
 
 
 class SysLock:
@@ -13,7 +14,7 @@ class SysLock:
         XXX НЕ рекурсивная
     """
 
-    SALT = __qualname__ + 'hTRxcJTsFYzMNsLd'
+    SALT = __qualname__ + 'hTRxcJTsFYsMNsLg'
     
     TICK = 0.00001
 
@@ -27,7 +28,7 @@ class SysLock:
     def acquire(self):
         while True:
             try:
-                self.shm = shared_memory.SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
+                self.shm = SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
                 break
             except FileExistsError:
                 sleep(SysLock.TICK)
