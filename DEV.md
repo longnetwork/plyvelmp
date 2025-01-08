@@ -24,7 +24,8 @@ _(.venv)$_  `pip install plyvel-ci`
 
 
 
-3) Чтобы запуск из исходников был таким-же как и после pip install (импорт правильно разрешался)
+4) Чтобы запуск из исходников был таким-же как и после pip install (импорт правильно разрешался):  
+
 _(.venv)$_  `pip install --editable .`  # https://setuptools.pypa.io/en/latest/userguide/development_mode.html  
 
 

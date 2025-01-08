@@ -5,8 +5,7 @@ isort==5.13.2
 mccabe==0.7.0
 platformdirs==4.3.6
 plyvel-ci==1.5.1
-# Editable install with no version control (plyvelmp==0.1)
--e /home/mint/Work/plyvel-mp
+-e git+https://github.com/longnetwork/plyvelmp.git@547b84f5e61e0d63ebcafdb1931e2e304c2ba83e#egg=plyvelmp
 pycodestyle==2.12.1
 pyflakes==3.2.0
 pylint==3.3.3

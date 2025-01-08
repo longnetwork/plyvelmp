@@ -3,7 +3,7 @@
 
 
 import logging, os
-from multiprocessing import current_process, parent_process, Process
+from multiprocessing import current_process, parent_process, Process, RLock
 
 from time import sleep
 
@@ -13,9 +13,6 @@ from .db import DB
 
 from .syslock import SysLock
 from .shm import SharedMemory
-
-
-class ExhaustedError(RuntimeError): pass
 
 
 def maintainer(**kwargs):  # Для spawn - target процесса через жопу Била Гейтса
@@ -142,6 +139,8 @@ class MDB:
         self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '')
 
         self.shm = None; self.index = -1
+
+        self.plock = RLock();  # Для защиты о неверного использования (одного сокета подключения в разных субпроцессах)
 
         with SysLock(self.salt):
             try:
@@ -487,72 +486,76 @@ class MDB:
     ################################################## Публичный Интерфейс ##########################################
     
     def put(self, key, val):
-        _lock = MDB.__seek_lock(self.index)
-        
-        while self.shm.buf[_lock]:
-            self._put_request({'method': 'put', 'key': key, 'val': val})
-            self._wait_responce();  # Ждем исполнения
+        with self.plock:
+            _lock = MDB.__seek_lock(self.index)
+            
+            while self.shm.buf[_lock]:
+                self._put_request({'method': 'put', 'key': key, 'val': val})
+                self._wait_responce();  # Ждем исполнения
 
-            return
+                return
 
-        raise ConnectionError("Workflow completed")
+            raise ConnectionError("Workflow completed")
         
 
     def delete(self, key):
-        _lock = MDB.__seek_lock(self.index)
-        
-        while self.shm.buf[_lock]:
-            self._put_request({'method': 'delete', 'key': key})
-            self._wait_responce();  # Ждем исполнения
-
-            return
+        with self.plock:
+            _lock = MDB.__seek_lock(self.index)
             
-        raise ConnectionError("Workflow completed")
+            while self.shm.buf[_lock]:
+                self._put_request({'method': 'delete', 'key': key})
+                self._wait_responce();  # Ждем исполнения
+
+                return
+                
+            raise ConnectionError("Workflow completed")
 
 
     def get(self, key):
-        _lock = MDB.__seek_lock(self.index)
-        
-        while self.shm.buf[_lock]:
-            self._put_request({'method': 'get', 'key': key})
-            result = self._wait_responce();  # Ждем исполнения
+        with self.plock:
+            _lock = MDB.__seek_lock(self.index)
+            
+            while self.shm.buf[_lock]:
+                self._put_request({'method': 'get', 'key': key})
+                result = self._wait_responce();  # Ждем исполнения
 
-            return result
+                return result
 
-        raise ConnectionError("Workflow completed")
+            raise ConnectionError("Workflow completed")
 
 
     def iterator(self, prefix=None, reverse=False, *, seek=None):
-        prefix = prefix or ''
-        
-        _lock = MDB.__seek_lock(self.index)
-        
-        while self.shm.buf[_lock]:
-
-            self._put_request({'method': 'iterator', 'prefix': prefix, 'reverse': reverse, 'seek': seek})
-            self._wait_responce(idle=False);     # Ждем исполнения без перехода в idle (без освобождения слота)
-
-            try:
-                while self.shm.buf[_lock]:
-                    self._put_request({'method': 'next'})
-                    
-                    result = self._wait_responce(idle=False)
-                    
-                    if result == 'StopIteration':
-                        return
-                        
-                    yield result;  # key, val
-
-                raise ConnectionError("Workflow completed")
-
-            finally:  # return / iterator().close() Заставит поток кода попасть сюда (GeneratorExit)
-                if self.shm.buf[_lock]:
-                    self._put_request({'method': 'close'})
-                    self._wait_responce(idle=True)
-                    
-                # return
+        with self.plock:
+            prefix = prefix or ''
             
-        raise ConnectionError("Workflow completed")
+            _lock = MDB.__seek_lock(self.index)
+            
+            while self.shm.buf[_lock]:
+
+                self._put_request({'method': 'iterator', 'prefix': prefix, 'reverse': reverse, 'seek': seek})
+                self._wait_responce(idle=False);     # Ждем исполнения без перехода в idle (без освобождения слота)
+
+                try:
+                    while self.shm.buf[_lock]:
+                        self._put_request({'method': 'next'})
+                        
+                        result = self._wait_responce(idle=False)
+                        
+                        if result == 'StopIteration':
+                            return
+                            
+                        yield result;  # key, val
+
+                    raise ConnectionError("Workflow completed")
+
+                finally:  # return / iterator().close() Заставит поток кода попасть сюда (GeneratorExit)
+                    if self.shm.buf[_lock]:
+                        self._put_request({'method': 'close'})
+                        self._wait_responce(idle=True)
+                        
+                    # return
+                
+            raise ConnectionError("Workflow completed")
 
 
     def write_batch(self):
@@ -591,33 +594,43 @@ class MDB:
                 raise ConnectionError("Workflow completed")
 
             def __enter__(self):                            # Менеджер контекста для последовательных синхронизированных операций put/get с оператором with
+                try:
+                    self.owner.plock.acquire()
                 
-                _lock = MDB._MDB__seek_lock(self.owner.index)
-                
-                while self.owner.shm.buf[_lock]:
-                    self.owner._put_request({'method': 'batch_enter'})
-                    self.owner._wait_responce(idle=False)
-
-                    return self
+                    _lock = MDB._MDB__seek_lock(self.owner.index)
                     
-                raise ConnectionError("Workflow completed")                
+                    while self.owner.shm.buf[_lock]:
+                        self.owner._put_request({'method': 'batch_enter'})
+                        self.owner._wait_responce(idle=False)
+
+                        return self
+                        
+                    raise ConnectionError("Workflow completed")
+                    
+                finally:
+                    pass
             
 
             def __exit__(self, exc_type, exc_value, traceback):  # Возвращает None - само исключение обрабатывается во вне
-                _lock = MDB._MDB__seek_lock(self.owner.index)
-                
-                while self.owner.shm.buf[_lock]:
-                    # XXX Может быть GeneratorExit но здесь это досрочный выход из внешнего генератора (если он используется) с отменой всех транзакций
-                    if not exc_type:
-                        self.owner._put_request({'method': 'batch_exit'})
-                    else:
-                        self.owner._put_request({'method': 'batch_error'})
-                        
-                    self.owner._wait_responce(idle=True);  # С освобождением слота
-
-                    return
+                try:
+                    _lock = MDB._MDB__seek_lock(self.owner.index)
                     
-                raise ConnectionError("Workflow completed")                 
+                    while self.owner.shm.buf[_lock]:
+                        # XXX Может быть GeneratorExit но здесь это досрочный выход из внешнего генератора (если он используется) с отменой всех транзакций
+                        if not exc_type:
+                            self.owner._put_request({'method': 'batch_exit'})
+                        else:
+                            self.owner._put_request({'method': 'batch_error'})
+                            
+                        self.owner._wait_responce(idle=True);  # С освобождением слота
+
+                        return
+                        
+                    raise ConnectionError("Workflow completed")
+                    
+                finally:
+                    self.owner.plock.release()
+
 
         return WriteBatch(self);  # self is owner
 
