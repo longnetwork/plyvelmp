@@ -7,3 +7,5 @@ from .lexoint import LexoInt
 
 from .syslock import SysLock
 
+from .orm import MDBOrm, MDBModel
+
