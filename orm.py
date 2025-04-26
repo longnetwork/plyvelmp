@@ -364,7 +364,9 @@ class MDBOrm(MDB):
                 ikeys_set.add(MDBOrm.ikeys_cache[ikey])
                 
             else:
-                lambda_src = inspect.getsource(ikey).strip("\r\n\t\f ,;")
+                lambda_src = inspect.getsource(ikey) or ''
+                lambda_src = re.sub(r'#.*$', '', lambda_src, 1)
+                lambda_src = lambda_src.strip("\r\n\t\f ,;")
 
                 # Проверка, что это lambda-выражение
                 try:
@@ -486,8 +488,8 @@ class MDBOrm(MDB):
                 raise LookupError(f"Updating non-existing data with id '{lexocount}'")
             
             _ckeys = _data['ckeys'];  # Это старые ключи индекса tables.<ckey>.<lexocount>: lambda data: ...
-            
-            ikeys_set = { super().get(table[:-1] + 's.' + ckey + '.' + lexocount) for ckey in _ckeys };  # Как вычислялись
+
+            _get = super().get; ikeys_set = { _get(table[:-1] + 's.' + ckey + '.' + lexocount) for ckey in _ckeys };  # Как вычислялись
 
             # Формируем обновленные данные с тем-же id но без поисковых ключей
             
