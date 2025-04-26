@@ -8,10 +8,11 @@ from ast import literal_eval
 
 from contextlib import contextmanager
 
-import plyvel
+# from leveldb import LevelDB
+from plyvel import DB as LevelDB
 
 
-class _DB:  # plyvel.DB не дается наследоваться
+class _DB:  # LevelDB не дается наследоваться
     """
         Ключи - всегда строки (с возможностью итерации по префиксу в лексикографическом порядке)
         Значения - Любые (хешируемые) python-объекты
@@ -23,7 +24,7 @@ class _DB:  # plyvel.DB не дается наследоваться
 
 
     
-    BLOCK_SIZE = 4096;                      # FIXME При больших BLOCK_SIZE под Windows крашит python3.11
+    BLOCK_SIZE = 4096;                          # FIXME При больших BLOCK_SIZE под Windows крашит python3.11
     WRITE_BUFFER_SIZE = BLOCK_SIZE * 1024
 
     PARANOID_CHECKS = True; VERIFY_CHECKSUMS = True;
@@ -39,11 +40,11 @@ class _DB:  # plyvel.DB не дается наследоваться
         self.path = path
         
         self._db = None
-        self._db = plyvel.DB(path, create_if_missing=True, compression = self.COMPRESSION,
-        
-                             paranoid_checks=self.PARANOID_CHECKS,
-                             write_buffer_size=self.WRITE_BUFFER_SIZE,
-                             block_size=self.BLOCK_SIZE)
+        self._db = LevelDB(path, create_if_missing=True, compression = self.COMPRESSION,
+
+                           paranoid_checks=self.PARANOID_CHECKS,
+                           write_buffer_size=self.WRITE_BUFFER_SIZE,
+                           block_size=self.BLOCK_SIZE)
         
         self.tlock = threading.RLock();  # Блокировка уровня экземпляра класса
 
