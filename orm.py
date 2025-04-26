@@ -323,6 +323,14 @@ class MDBOrm(MDB):
 
 
     def __init__(self, path='DB'):
+
+        cls = type(self)
+        if (SALT := cls.__dict__.get('SALT')) is not None:
+            super_cls = cls.__mro__[1:2]; super_cls = super_cls and super_cls[0]
+            if super_cls:
+                super_cls.SALT = super_cls.__qualname__ + SALT
+            
+        
         super().__init__(path)
 
 
