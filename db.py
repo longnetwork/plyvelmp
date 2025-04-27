@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import logging, threading
+import os, logging, threading
 
 from ast import literal_eval
 
@@ -24,8 +24,8 @@ class _DB:  # LevelDB не дается наследоваться
 
 
     
-    BLOCK_SIZE = 4096;                          # FIXME При больших BLOCK_SIZE под Windows крашит python3.11
-    WRITE_BUFFER_SIZE = BLOCK_SIZE * 1024
+    BLOCK_SIZE = 16 * 1024
+    WRITE_BUFFER_SIZE = BLOCK_SIZE * 1024 * 16
 
     PARANOID_CHECKS = True; VERIFY_CHECKSUMS = True;
 
@@ -33,7 +33,10 @@ class _DB:  # LevelDB не дается наследоваться
 
     SYNC = False;       # True - медленный режим со "скидыванием" дискового кеша после каждой операции записи (важен только при отрубании питания)
 
-    COMPRESSION: "None | 'snappy'" = None;  # FIXME Под Windows 'snappy' приводит к краху питона (snappy на тестах ужимает в 2 раза)
+    if os.name == 'nt':
+        COMPRESSION: "None | 'snappy'" = None;  # FIXME Под Windows 'snappy' приводит к краху python3.11 (snappy на тестах ужимает в 2 раза)
+    else:
+        COMPRESSION: "None | 'snappy'" = 'snappy'
 
     def __init__(self, path):
 

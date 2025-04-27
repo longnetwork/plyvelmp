@@ -62,7 +62,9 @@ class MDB:
                 data  - данные ввода/вывода в литеральных b-строках (образованных от словаря);
     """
 
-    BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data
+    # BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data
+    BLOCK_SIZE = 16 * 1024
+    
     # SALT = DB.SALT
     SALT = __qualname__ + 'muqpjaTWTcwHmmqL';  # alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
