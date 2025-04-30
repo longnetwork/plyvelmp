@@ -113,13 +113,17 @@ class MDBModel(dict):
 
         Аннотация полей - может быть произвольной кастомной meta-информацией для произвольного использования
         в наследниках ( извлечение через cls.annotations() )
-        Поля без default-значения обязательны для заполнения
+        
+        Поля без default-значения обязательны для заполнения (они аннотированы как минимум).
+        Не аннотированные поля без default-значений не возможно задекларировать.
         
 
         XXX __str__ - может быть переопределена, но НЕ __repr__ ! (__repr__ используется для сериализации данных)
 
         Аннотации :TableID и дочерние классы от :MDBModel обрабатываются с преобразованием данных при доступе к
         полю как к атрибуту инстанца класса (например через точку) или при создании объекта
+
+
 
 
         FIXME Подумать о парадигме "Loop Unrolling" для оптимизации конструктора
@@ -179,6 +183,13 @@ class MDBModel(dict):
                 d.setdefault(attr, value);                                                       # Обычное поле
                 
         return d
+
+
+    @classmethod
+    @memoized
+    def comparables(cls):
+        return (set(cls.annotations().keys()) | set(cls.defaults().keys())) - {'id', 'timestamp'}
+
             
 
     def __set_defaults(self):
@@ -273,9 +284,9 @@ class MDBModel(dict):
 
     def __eq__(self, other):
         """
-            other может быть dict (используется repr от словаря)
+            other может быть dict
         """
-        return repr(self) == repr(other)
+        return { k: self.get(k) for k in self.comparables() } == { k: other.get(k) for k in self.comparables() }
         
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -285,7 +296,8 @@ class MDBModel(dict):
             dict сам по себе не хешируемый тип
             XXX При создании объектов timestamp делает объекты разными, но copy - одинаковыми (так как словари получается одинаковым)
         """
-        return hash(repr(self))
+        
+        return hash(repr({ k: self.get(k) for k in self.comparables() }))
 
 
 
