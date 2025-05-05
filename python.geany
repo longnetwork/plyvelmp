@@ -25,14 +25,14 @@ long_line_column=72
 [files]
 current_page=1
 FILE_NAME_0=110;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2FREADME.md;0;4
-FILE_NAME_1=13816;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Form.py;0;4
+FILE_NAME_1=27468;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Form.py;0;4
 FILE_NAME_2=3606;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fmdb.py;0;4
 FILE_NAME_3=1442;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Flexoint.py;0;4
 FILE_NAME_4=105;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fsyslock.py;0;4
 FILE_NAME_5=1659;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fshm.py;0;4
 FILE_NAME_6=1706;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fdb.py;0;4
 FILE_NAME_7=162;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2F__init__.py;0;4
-FILE_NAME_8=944;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2FDEV.md;0;4
+FILE_NAME_8=920;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2FDEV.md;0;4
 FILE_NAME_9=69;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Form.py;0;4
 FILE_NAME_10=2141;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fsoftlocking.py;0;4
 FILE_NAME_11=71;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fbatch.py;0;4
@@ -42,6 +42,7 @@ FILE_NAME_14=78;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2
 FILE_NAME_15=76;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Fsyslocking.py;0;4
 FILE_NAME_16=112;None;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2F.gitignore;0;4
 FILE_NAME_17=516;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Fsetup.py;0;4
+FILE_NAME_18=585;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvel-mp%2Ftest%2Finfo.md;0;4
 
 [VTE]
 last_dir=/home/mint/Work/plyvel-mp

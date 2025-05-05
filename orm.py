@@ -558,8 +558,9 @@ class MDBOrm(MDB):
                    или все предшествующие (reverse=True) ключи
 
             XXX Алгоритм пагинации (c limit):
-               - при reverse=False изначально seek=None, затем равен последнему id в выборке (он будет увеличен на 1-цу автоматически);
-               - при reverse=True изначально seek=None, затем равен последнему id в выборке (так или иначе будет приведен к LexoInt);
+               - при reverse=False изначально seek=None, затем равен последнему id в выборке, увеличенному на 1-цу;
+               - при reverse=True изначально seek=None, затем равен последнему id в выборке, уменьшенному на 1-цу;
+               - при limit=1 в селекции будет id, равный seek (если такой id есть), или следующий в направлении reverse
         """
         ckeys = ckeys if ckeys is not None else ['']
         
@@ -576,7 +577,8 @@ class MDBOrm(MDB):
 
         if seek is not None:
             seek = LexoInt(seek, size=LEXOINT_SIZE)
-            if not reverse: seek += 1
+            # if not reverse: seek += 1
+            if reverse: seek += 1
             seek = str(seek)
             
 
