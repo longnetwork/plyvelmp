@@ -637,7 +637,8 @@ class MDBOrm(MDB):
 
         table_id = LexoInt(table_id, size=LEXOINT_SIZE)
         
-        data = (r := self._select(table, reverse=True, seek = table_id + 1, limit=1)) and r[0] or None
+        # data = (r := self._select(table, reverse=True, seek = table_id + 1, limit=1)) and r[0] or None
+        data = (r := self._select(table, reverse=True, seek = table_id, limit=1)) and r[0] or None
         if not data: return None
 
         lexocount = LexoInt(data.get('id'), size=LEXOINT_SIZE)
