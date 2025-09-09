@@ -33,10 +33,12 @@ class _DB:  # LevelDB не дается наследоваться
 
     SYNC = False;       # True - медленный режим со "скидыванием" дискового кеша после каждой операции записи (важен только при отрубании питания)
 
-    if os.name == 'nt':
-        COMPRESSION: "None | 'snappy'" = None;  # FIXME Под Windows 'snappy' приводит к краху python3.11 (snappy на тестах ужимает в 2 раза)
-    else:
-        COMPRESSION: "None | 'snappy'" = 'snappy'
+    # ~ if os.name == 'nt':
+        # ~ COMPRESSION: "None | 'snappy'" = None;  # FIXME Под Windows 'snappy' приводит к краху python3.11 (snappy на тестах ужимает в 2 раза)
+    # ~ else:
+        # ~ COMPRESSION: "None | 'snappy'" = 'snappy'
+
+    COMPRESSION: "None | 'snappy'" = 'snappy'
 
     def __init__(self, path):
 
