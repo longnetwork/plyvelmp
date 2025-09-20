@@ -70,7 +70,7 @@
 
 # pylint: disable=C0123,W0123,R0204
 
-import sys, inspect, logging, re
+import sys, inspect, logging, re, functools
 
 from time import time
 from copy import copy
@@ -79,17 +79,8 @@ from .lexoint import LexoInt
 from .mdb import MDB
 
 
-def memoized(func):
-    memory = {}
-    
-    def wrap(*args, **kwargs):
-        key = hash(repr(( *args, *sorted(kwargs.items()) )))
-        if key not in memory:
-            memory[key] = func(*args, **kwargs)
-        return memory[key]
 
-    wrap.__name__ = func.__name__
-    return wrap
+memoized = functools.cache
 
 
 
