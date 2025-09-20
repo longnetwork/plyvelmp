@@ -326,14 +326,17 @@ class MDBOrm(MDB):
 
 
     def __init__(self, path='DB'):
+        """
+            В суппер классе есть статические переменные с доступом через имя класса MDB.xxx (из статических методов без self),
+            поэтому должны предоставить механизм их перекрытия в наследниках (как глобальных констант)
+        """
 
         cls = type(self)
-        if (SALT := cls.__dict__.get('SALT')) is not None:
-            super_cls = cls.__mro__[1:2]; super_cls = super_cls and super_cls[0]
-            if super_cls:
-                super_cls.SALT = super_cls.__qualname__ + SALT
+
+        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE'):
+            if (val := getattr(cls, attr, None)) is not None:
+                setattr(MDB, attr, val)
             
-        
         super().__init__(path)
 
 

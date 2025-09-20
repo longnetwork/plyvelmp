@@ -62,13 +62,12 @@ class MDB:
                 data  - данные ввода/вывода в литеральных b-строках (образованных от словаря);
     """
 
-    # BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data
-    BLOCK_SIZE = 16 * 1024
+    BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data
+    # assert BLOCK_SIZE >= 512
     
     # SALT = DB.SALT
     SALT = __qualname__ + 'muqpjaTWTcwHmmqL';  # alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
-    assert BLOCK_SIZE >= 512
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
     TICK = SysLock.TICK = 0.00001
@@ -135,6 +134,9 @@ class MDB:
 
         
     def __init__(self, path='DB'):
+
+        assert MDB.BLOCK_SIZE >= 512
+
         
         self.path = path
 
@@ -280,6 +282,10 @@ class MDB:
 
         
         try:
+
+            for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE'):
+                if (val := getattr(MDB, attr, None)) is not None:
+                    setattr(DB, attr, val)
 
             db = DB(db_path)
             

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
-import os, logging, threading
+import logging, threading
 
 from ast import literal_eval
 
