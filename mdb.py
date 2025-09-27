@@ -5,7 +5,7 @@
 import logging, os
 from multiprocessing import current_process, parent_process, Process, RLock
 
-from time import sleep
+from time import sleep, time
 
 from ast import literal_eval
 
@@ -71,8 +71,10 @@ class MDB:
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
     TICK = SysLock.TICK = 0.00001
-
+    
     assert TICK > 0.0000001
+
+    TIMEOUT = 3.0
 
 
     MAX_PROCESSES = 24;  # Определяет размер SharedMemory для обслуживания процессов без очереди
@@ -170,14 +172,15 @@ class MDB:
                 MDB.__maintainer_proc.start()
 
                 # Должны не выходя из блокировки дождаться подключения к SharedMemory
-
+                stime = time()
                 while not self.shm:
                     sleep(MDB.TICK)
                     try:
                         self.shm = SharedMemory(name=self.salt, create=False)
                         logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                     except (FileNotFoundError, ValueError):
-                        pass
+                        if (time() - stime) > MDB.TIMEOUT:
+                            raise
 
             # Если мы дошли сюда, то нужно присоединится к свободному слоту данных
             # Если слоты исчерпаны то ждем освобождения вечно и под системной блокировкой (другие ждут выше на SysLock)
