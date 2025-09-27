@@ -176,7 +176,7 @@ class MDB:
                     try:
                         self.shm = SharedMemory(name=self.salt, create=False)
                         logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
-                    except FileNotFoundError:
+                    except (FileNotFoundError, ValueError):
                         pass
 
             # Если мы дошли сюда, то нужно присоединится к свободному слоту данных
