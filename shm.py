@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, textwrap
+import os, textwrap, sys
 
 from multiprocessing import shared_memory, util, resource_tracker
 
@@ -17,7 +17,7 @@ from multiprocessing import shared_memory, util, resource_tracker
     XXX Этот фикс нужен только для Linux (в винде все ОК)
 """
 
-if os.name == 'posix':
+if os.name == 'posix' and not getattr(sys, 'frozen', False):
     _spawnv_passfds = util.spawnv_passfds
     
     def spawnv_passfds(path, args, passfds):
@@ -46,7 +46,7 @@ class SharedMemory(shared_memory.SharedMemory):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        if os.name == 'posix':
+        if os.name == 'posix' and not getattr(sys, 'frozen', False):
             resource_tracker.unregister(self._name, 'shared_memory')
             
 

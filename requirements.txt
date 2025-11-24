@@ -1,12 +1,12 @@
-astroid==3.3.8
-dill==0.3.9
-flake8==7.1.1
-isort==5.13.2
+astroid==3.3.11
+dill==0.4.0
+flake8==7.3.0
+isort==6.0.1
 mccabe==0.7.0
-platformdirs==4.3.6
+platformdirs==4.4.0
 plyvel-ci==1.5.1
--e git+https://github.com/longnetwork/plyvelmp.git@956d8939c5cf91bba203fcf0d8970a566e86aeec#egg=plyvelmp
-pycodestyle==2.12.1
-pyflakes==3.2.0
-pylint==3.3.3
-tomlkit==0.13.2
+-e git+https://github.com/longnetwork/plyvelmp.git@385f1bf39ffb8cc62705a6404920dd22c4b0d79a#egg=plyvelmp
+pycodestyle==2.14.0
+pyflakes==3.4.0
+pylint==3.3.8
+tomlkit==0.13.3
