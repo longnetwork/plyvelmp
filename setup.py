@@ -23,7 +23,7 @@ setup(
 
     
     install_requires=[
-        'plyvel-ci>=1.5.1',
+        'plyvel>=1.5.1',
     ],
 
 )

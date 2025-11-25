@@ -4,8 +4,9 @@ flake8==7.3.0
 isort==6.0.1
 mccabe==0.7.0
 platformdirs==4.4.0
+plyvel==1.5.1
 plyvel-ci==1.5.1
--e git+https://github.com/longnetwork/plyvelmp.git@385f1bf39ffb8cc62705a6404920dd22c4b0d79a#egg=plyvelmp
+-e git+https://github.com/longnetwork/plyvelmp.git@6a0bab974086acb4049a65c3914d1f734aa9ba8c#egg=plyvelmp
 pycodestyle==2.14.0
 pyflakes==3.4.0
 pylint==3.3.8
