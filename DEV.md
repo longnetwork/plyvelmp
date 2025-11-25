@@ -18,7 +18,7 @@ _(.venv)$_  `deactivate`
 
 3) Пакетные зависимости:  
 
-_(.venv)$_  `pip install plyvel-ci`  
+_(.venv)$_  `pip install plyvel`  
 
 
 
