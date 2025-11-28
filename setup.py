@@ -23,7 +23,8 @@ setup(
 
     
     install_requires=[
-        'plyvel>=1.5.1',
+        'plyvel>=1.5.1; platform_system == "Linux"',
+        'plyvel-ci>=1.5.1; platform_system == "Windows"',
     ],
 
 )
