@@ -444,8 +444,13 @@ class MDB:
                         bt.close(); batches[i] = None
 
             MDB.__clr_locks(shm.buf)
+                       
 
             try:
+                # FIXME Предотвратить resource_tracker Warnings, как реакцию на shm.unlink()
+                # если было подключение со стороны вообще отдельного инстанца python,
+                # и здесь "крутились" в ожидании когда тот закончит работу
+                
                 shm.close()
                 shm.unlink()
             except:
