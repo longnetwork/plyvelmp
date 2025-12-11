@@ -333,7 +333,7 @@ class MDBOrm(MDB):
 
         cls = type(self)
 
-        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE'):
+        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'MAX_PROCESSES'):
             if (val := getattr(cls, attr, None)) is not None:
                 setattr(MDB, attr, val)
             
