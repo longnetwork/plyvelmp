@@ -16,7 +16,7 @@ class SysLock:
 
     SALT = __qualname__ + 'hTRxcJTsFYsMNsLg'
     
-    TICK = 0.00001
+    TICK = 0.0001
 
     SIZE = struct.calcsize("P")
 

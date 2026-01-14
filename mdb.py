@@ -70,7 +70,7 @@ class MDB:
 
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
-    TICK = SysLock.TICK = 0.00001
+    TICK = SysLock.TICK = 0.0001
     
     assert TICK > 0.0000001
 
