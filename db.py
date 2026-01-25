@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# pylint: disable=W0123,W0611
+
 
 import os, logging, threading
 
-from ast import literal_eval
+# from ast import literal_eval
+from decimal import Decimal;  # noqa
 
 from contextlib import contextmanager
 
@@ -82,7 +85,8 @@ class _DB:  # LevelDB не дается наследоваться
         if val is None: return None
 
         try:
-            return literal_eval(val.decode())
+            # return literal_eval(val.decode())
+            return eval(val.decode())
         except Exception:
             raise RuntimeError(f"DB {self.path}: Invalid Value {val} for key {key}") from None
 
@@ -142,7 +146,8 @@ class _DB:  # LevelDB не дается наследоваться
                         else:
 
                             try:
-                                yield key.decode()[prefix_len:], literal_eval(val.decode())
+                                # yield key.decode()[prefix_len:], literal_eval(val.decode())
+                                yield key.decode()[prefix_len:], eval(val.decode())
                             except Exception:
                                 raise RuntimeError(f"DB {self.path}: Invalid Value {val} for key {key}") from None
                             

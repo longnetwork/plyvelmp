@@ -2,12 +2,16 @@
 # -*- coding: utf-8 -*-
 
 
+# pylint: disable=W0123,W0611
+
+
 import logging, os
 from multiprocessing import current_process, parent_process, Process, RLock
 
 from time import sleep, time
 
-from ast import literal_eval
+# from ast import literal_eval
+from decimal import Decimal;  # noqa
 
 from .db import DB
 
@@ -116,7 +120,8 @@ class MDB:
         except ValueError:
             raise BufferError from None
 
-        return literal_eval(raw[0: end].decode())
+        # return literal_eval(raw[0: end].decode())
+        return eval(raw[0: end].decode())
 
     @staticmethod
     def __get_tasks(shm_buf):
