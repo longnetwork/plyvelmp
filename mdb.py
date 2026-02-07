@@ -5,6 +5,8 @@
 # pylint: disable=W0123,W0611
 
 
+import sys
+
 import logging, os
 from multiprocessing import current_process, parent_process, Process, RLock
 
@@ -74,7 +76,7 @@ class MDB:
 
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
-    TICK = SysLock.TICK = 0.0001
+    TICK = SysLock.TICK = sys.getswitchinterval() / 3
     
     assert TICK > 0.0000001
 

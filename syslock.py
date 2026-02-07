@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
+
 import struct
 from time import sleep
 
@@ -16,7 +18,7 @@ class SysLock:
 
     SALT = __qualname__ + 'hTRxcJTsFYsMNsLg'
     
-    TICK = 0.0001
+    TICK = sys.getswitchinterval() / 3
 
     SIZE = struct.calcsize("P")
 
