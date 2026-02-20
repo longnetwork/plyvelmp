@@ -629,6 +629,8 @@ class MDBOrm(MDB):
 
     def _getrow(self, table, /, table_id):
 
+        if table_id is None: return None
+
         table_id = LexoInt(table_id, size=LEXOINT_SIZE)
         
         # data = (r := self._select(table, reverse=True, seek = table_id + 1, limit=1)) and r[0] or None
