@@ -6,7 +6,7 @@ import sys
 import struct
 from time import sleep
 
-from .shm import SharedMemory
+from multiprocessing import shared_memory
 
 
 class SysLock:
@@ -30,7 +30,7 @@ class SysLock:
     def acquire(self):
         while True:
             try:
-                self.shm = SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
+                self.shm = shared_memory.SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
                 break
             except FileExistsError:
                 sleep(SysLock.TICK)

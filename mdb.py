@@ -8,7 +8,11 @@
 import sys
 
 import logging, os
-from multiprocessing import current_process, parent_process, Process, RLock
+from multiprocessing import (
+    current_process, parent_process,
+    Process, RLock,
+    shared_memory, resource_tracker,
+)
 
 from time import sleep, time
 
@@ -17,9 +21,8 @@ from decimal import Decimal;  # noqa
 
 from .db import DB
 
-from .syslock import SysLock
-from .shm import SharedMemory
 
+from .syslock import SysLock
 
 def maintainer(**kwargs):  # Для spawn - target процесса через жопу Била Гейтса
     mdb_cls = globals()['MDB']; _maintainer = getattr(mdb_cls, '_MDB__maintainer'); _maintainer(**kwargs)
@@ -158,7 +161,10 @@ class MDB:
         with SysLock(self.salt):
             try:
                 # Аттач к существующей SharedMemory
-                self.shm = SharedMemory(name=self.salt, create=False)
+                self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                # XXX чтобы не создатели SharedMemory не убивали в /dev/shm дескриптор SharedMemory
+                if os.name == 'posix': resource_tracker.unregister(self.shm._name, 'shared_memory');  
+                
                 logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
                 
             except FileNotFoundError:
@@ -183,8 +189,11 @@ class MDB:
                 while not self.shm:
                     sleep(MDB.TICK)
                     try:
-                        self.shm = SharedMemory(name=self.salt, create=False)
+                        self.shm = shared_memory.SharedMemory(name=self.salt, create=False)
+                        # if os.name == 'posix': resource_tracker.unregister(self.shm._name, 'shared_memory')
+                        
                         logging.info(f"Attach SharedMemory {self.shm.name}, process {current_process().name}")
+                        
                     except (FileNotFoundError, ValueError):
                         if (time() - stime) > MDB.TIMEOUT:
                             raise
@@ -241,10 +250,11 @@ class MDB:
 
         # Создание нового SharedMemory. FileExistsError не может быть (возможность проверяется под системной блокировкой ОС)
         
-        shm = SharedMemory(
+        shm = shared_memory.SharedMemory(
             name=shm_name, create=True,
             size= MDB.MAX_PROCESSES + MDB.MAX_PROCESSES + MDB.MAX_PROCESSES * MDB.BLOCK_SIZE
         )
+        # if os.name == 'posix': resource_tracker.unregister(shm._name, 'shared_memory')
             
         logging.info(f"Create SharedMemory {shm.name}, process {current_process().name}")
 
