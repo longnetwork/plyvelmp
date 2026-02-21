@@ -628,19 +628,18 @@ class MDBOrm(MDB):
 
 
     def _getrow(self, table, /, table_id):
+        """
+            Всегда не кешировано
+        """
 
         if table_id is None: return None
 
+        if not table.endswith('.'): table += '.'
+
         table_id = LexoInt(table_id, size=LEXOINT_SIZE)
-        
-        # data = (r := self._select(table, reverse=True, seek = table_id + 1, limit=1)) and r[0] or None
-        data = (r := self._select(table, reverse=True, seek = table_id, limit=1)) and r[0] or None
-        if not data: return None
 
-        lexocount = LexoInt(data.get('id'), size=LEXOINT_SIZE)
-        if lexocount != table_id: return None
+        return super().get(table + table_id)
 
-        return data
 
     def getrow(self, Model: "type(MDBModel)", /, table_id):
         return Model(data) if (data := self._getrow(Model.__name__, table_id)) else None
