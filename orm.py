@@ -636,7 +636,7 @@ class MDBOrm(MDB):
 
         if not table.endswith('.'): table += '.'
 
-        table_id = LexoInt(table_id, size=LEXOINT_SIZE)
+        table_id = str(LexoInt(table_id, size=LEXOINT_SIZE))
 
         return super().get(table + table_id)
 
