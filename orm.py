@@ -68,7 +68,7 @@
 """
 
 
-# pylint: disable=C0123,W0123,R0204
+# pylint: disable=C0123,W0123,R0204,W0611
 
 import sys, inspect, logging, re, functools
 
@@ -76,8 +76,7 @@ from time import time
 from copy import copy
 
 from .lexoint import LexoInt
-from .mdb import MDB
-
+from .mdb import MDB, SysLock  # noqa
 
 
 memoized = functools.cache
