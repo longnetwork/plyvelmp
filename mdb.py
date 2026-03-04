@@ -303,7 +303,7 @@ class MDB:
         
         try:
 
-            for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE'):
+            for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'BLOOMFILTER'):
                 if (val := getattr(MDB, attr, None)) is not None:
                     setattr(DB, attr, val)
 

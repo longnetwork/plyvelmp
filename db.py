@@ -41,12 +41,14 @@ class _DB:  # LevelDB не дается наследоваться
     else:
         COMPRESSION: "None | 'snappy'" = 'snappy'
 
+    BLOOMFILTER = 10;  # 0 для отключения (предотвращает холостые операции ценой небольшого расхода оперативки: ~ 1.2 МБ на 1 млн. ключей)
+
     def __init__(self, path):
 
         self.path = path
         
         self._db = None
-        self._db = LevelDB(path, create_if_missing=True, compression = self.COMPRESSION,
+        self._db = LevelDB(path, create_if_missing=True, compression = self.COMPRESSION, bloom_filter_bits = self.BLOOMFILTER,
 
                            paranoid_checks=self.PARANOID_CHECKS,
                            write_buffer_size=self.WRITE_BUFFER_SIZE,

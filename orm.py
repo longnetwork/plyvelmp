@@ -22,6 +22,7 @@
 
         Для служебных данных таблиц зарезервирован разделитель '#':
             'table#wcount': ...
+            'table#length': ...
         
     XXX eval вычисляет lambda в контексте этого модуля, поэтому если lambda зависима от классов импорта, то либо этот импорт должен быть
         явно здесь, либо во вне нужные классы могут быть добавлены так:
@@ -332,7 +333,7 @@ class MDBOrm(MDB):
 
         cls = type(self)
 
-        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'MAX_PROCESSES'):
+        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'BLOOMFILTER', 'MAX_PROCESSES'):
             if (val := getattr(cls, attr, None)) is not None:
                 setattr(MDB, attr, val)
             
@@ -394,6 +395,7 @@ class MDBOrm(MDB):
             lexocount = self._lexocount(table);                 # Это следующий id записи
 
             wcount = super().get(table[:-1] + '#wcount') or 0;  # Счетчик записей
+            length = super().get(table[:-1] + '#length') or 0;  # Счетчик записей
 
 
             data.update(id=lexocount);           # Обновит или установит id в data по ссылке
@@ -405,14 +407,15 @@ class MDBOrm(MDB):
             data['ckeys'] = ckeys;  # Храним и служебные данные (чтобы знать что удалять потом в индексе)
 
             
-            
             with super().write_batch() as wb:    # Как единая неразрывная транзакция
                 # Все обращения только через wb, где предусмотрено оставление слота открытым до завершения операций
                 for ckey, ikey in zip(ckeys, ikeys):
                     wb.put(table[:-1] + 's.' + ckey + '.' + lexocount, ikey)
+                    
                 wb.put(table + lexocount, data)
 
                 wb.put(table[:-1] + '#wcount', wcount + 1)
+                wb.put(table[:-1] + '#length', length + 1)
                 
 
             self.select_caches.pop(table, None)
@@ -444,6 +447,7 @@ class MDBOrm(MDB):
                     return
 
                 wcount = super().get(table[:-1] + '#wcount') or 0
+                length = super().get(table[:-1] + '#length') or 0
                     
                 data = super().get(table + lexocount)
                 if data is not None:  # Еще не удалялось
@@ -456,6 +460,7 @@ class MDBOrm(MDB):
                         wb.delete(table + lexocount)
 
                         wb.put(table[:-1] + '#wcount', wcount + 1)
+                        wb.put(table[:-1] + '#length', length - 1)
 
                     self.select_caches.pop(table, None)
                         
@@ -672,6 +677,14 @@ class MDBOrm(MDB):
 
     def wcount(self, Model: "type(MDBModel)"):
         return self._wcount(Model.__name__)
+
+    def _length(self, table):
+        if not table.endswith('.'): table += '.'
+        return super().get(table[:-1] + '#length') or 0
+
+    def length(self, Model: "type(MDBModel)"):
+        return self._length(Model.__name__)    
+
 
 
 
