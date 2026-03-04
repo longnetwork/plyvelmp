@@ -23,10 +23,10 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=14
+current_page=2
 FILE_NAME_0=1077;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fmdb.py;0;4
 FILE_NAME_1=1017;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2FDEV.md;0;4
-FILE_NAME_2=31704;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Form.py;0;4
+FILE_NAME_2=8604;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Form.py;0;4
 FILE_NAME_3=0;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2F__init__.py;0;4
 FILE_NAME_4=2333;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fdb.py;0;4
 FILE_NAME_5=644;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Flexoint.py;0;4

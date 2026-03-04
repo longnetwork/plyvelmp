@@ -163,15 +163,15 @@ class MDBModel(dict):
 
             for attr, value in c.__dict__.items():
                 if attr == 'ikeys': continue
-                if attr.startswith('__'): continue;                                              # Игнор системных полей
+                if attr.startswith('__'): continue;                                                        # Игнор системных полей
                 
-                if getattr(value, '__name__', None) == '<lambda>':                               # Вычислимое default-значение
+                if getattr(value, '__name__', None) == '<lambda>':                                         # Вычислимое default-значение
                     d.setdefault(attr, value)
                     continue
 
-                if callable(value) or isinstance(value, (staticmethod, classmethod)): continue;  # Пропуск пользовательских утилит в классе
+                if callable(value) or isinstance(value, (staticmethod, classmethod, property)): continue;  # Пропуск пользовательских утилит в классе
 
-                d.setdefault(attr, value);                                                       # Обычное поле
+                d.setdefault(attr, value);                                                                 # Обычное поле
                 
         return d
 
