@@ -6,7 +6,7 @@ import sys
 import struct
 from time import sleep
 
-from multiprocessing import shared_memory
+from multiprocessing import shared_memory, Lock
 
 
 class SysLock:
@@ -26,11 +26,13 @@ class SysLock:
     def __init__(self, name=''):
         self.shm = None
         self.name = SysLock.SALT + name
+        self.lock = Lock()
         
     def acquire(self):
         while True:
             try:
-                self.shm = shared_memory.SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
+                with self.lock:
+                    self.shm = shared_memory.SharedMemory(name= self.name, create=True, size= SysLock.SIZE);  # 50us ~ 5ms
                 break
             except FileExistsError:
                 sleep(SysLock.TICK)
@@ -38,12 +40,14 @@ class SysLock:
         return True
         
     def release(self):
-        if not self.shm:
-            raise RuntimeError("release unlocked syslock");  # ValueError: semaphore or lock released too many times
-
-        self.shm.close()
-        self.shm.unlink()
-        self.shm = None
+        with self.lock:
+            shm, self.shm = self.shm, None
+            
+            if not shm:
+                raise RuntimeError("release unlocked syslock");  # ValueError: semaphore or lock released too many times
+            
+            shm.close()
+            shm.unlink()
 
 
     def __enter__(self):
