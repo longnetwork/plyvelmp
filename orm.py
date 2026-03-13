@@ -76,16 +76,20 @@ import sys, inspect, logging, re, functools
 from time import time
 from copy import copy
 
-from .lexoint import LexoInt
+from .lexoint import LexoInt as _LexoInt
 from .mdb import MDB, SysLock  # noqa
 
 
 memoized = functools.cache
 
 
-
 LEXOINT_SIZE = 16
 TableID = "LexoInt | int | str"
+
+class LexoInt(_LexoInt):
+    def __init__(self, *args, **kwargs):
+        kwargs.pop('size', None)
+        super().__init__(*args, size=LEXOINT_SIZE, **kwargs)
 
 
 class MDBModel(dict):
@@ -205,7 +209,7 @@ class MDBModel(dict):
     def __cast_value(value, ann):
         if value is not None:
             if ann is TableID:
-                return LexoInt(value, size=LEXOINT_SIZE);              # Приведение id к LexoInt
+                return LexoInt(value);                                 # Приведение id к LexoInt
             elif isinstance(ann, type) and issubclass(ann, MDBModel):  # Словари преобразуем в объекты MDBModel
                 if type(value) is not ann:
                     return ann(value);                                 # Вызов конструктора MDBModel
@@ -302,10 +306,15 @@ class MDBOrm(MDB):
 
         XXX Помним что представление совокупных данных (ключ, значение, служебка) ограничено MDB.BLOCK_SIZE
     """
-    
+
+    LexoInt = LexoInt
+    LEXOINT_SIZE = LEXOINT_SIZE
+
+        
     ikeys_cache = {};   # Для кеширования результатов с inspect.getsource()
 
     select_caches = {};  # select() кешируется потаблично до первой операции записи в таблицу
+
 
     @staticmethod
     def __calculate_index(ikeys_set, data):  # -> (ckeys, ikeys)
@@ -442,7 +451,7 @@ class MDBOrm(MDB):
             # Удаляем по данным
             if data is not None:
                 try:
-                    lexocount = str(LexoInt(data.get('id'), size=LEXOINT_SIZE))
+                    lexocount = str(LexoInt(data.get('id')))
                 except Exception:
                     return
 
@@ -485,7 +494,7 @@ class MDBOrm(MDB):
         with self.plock:                
 
             try:
-                lexocount = str(LexoInt(data.get('id'), size=LEXOINT_SIZE))
+                lexocount = str(LexoInt(data.get('id')))
             except Exception:
                 raise ReferenceError(f"Update with invalid id '{data.get('id')}'") from None
                 
@@ -574,7 +583,7 @@ class MDBOrm(MDB):
         count = 0
 
         if seek is not None:
-            seek = LexoInt(seek, size=LEXOINT_SIZE)
+            seek = LexoInt(seek)
             # if not reverse: seek += 1
             if reverse: seek += 1
             seek = str(seek)
@@ -640,14 +649,13 @@ class MDBOrm(MDB):
 
         if not table.endswith('.'): table += '.'
 
-        table_id = str(LexoInt(table_id, size=LEXOINT_SIZE))
+        table_id = str(LexoInt(table_id))
 
         return super().get(table + table_id)
 
 
     def getrow(self, Model: "type(MDBModel)", /, table_id):
         return Model(data) if (data := self._getrow(Model.__name__, table_id)) else None
-
         
         
     def _lexocount(self, table):  # table is prefix
@@ -660,7 +668,7 @@ class MDBOrm(MDB):
                 last_index = idx
                 break
 
-        return str(LexoInt(last_index, size=LEXOINT_SIZE) + 1) if last_index is not None else str(LexoInt('0' * LEXOINT_SIZE))
+        return str(LexoInt(last_index) + 1) if last_index is not None else str(LexoInt(0))
 
 
     @staticmethod
