@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup(
     name='plyvelmp',
-    version='0.6',
+    version='0.7',
     description='Support for connections to the same leveldb from different processes',
     
     author='Steep Pepper',

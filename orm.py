@@ -334,7 +334,7 @@ class MDBOrm(MDB):
         return ckeys, ikeys
 
 
-    def __init__(self, path='DB'):
+    def __init__(self, path='DB', *, select_caches_disable=False):
         """
             В суппер классе есть статические переменные с доступом через имя класса MDB.xxx (из статических методов без self),
             поэтому должны предоставить механизм их перекрытия в наследниках (как глобальных констант)
@@ -347,6 +347,8 @@ class MDBOrm(MDB):
                 setattr(MDB, attr, val)
             
         super().__init__(path)
+
+        self.select_caches_disable = select_caches_disable
 
 
     def _insert(self, table, /, data: dict, *, ikeys='items'):
@@ -426,7 +428,6 @@ class MDBOrm(MDB):
                 wb.put(table[:-1] + '#wcount', wcount + 1)
                 wb.put(table[:-1] + '#length', length + 1)
                 
-
             self.select_caches.pop(table, None)
 
 
@@ -592,10 +593,11 @@ class MDBOrm(MDB):
         if limit > 0:
             with self.plock:
 
-                key_cache = hash(repr( (reverse, intersection, ckeys, seek, limit) ))
-                cache = MDBOrm.select_caches.setdefault(table, {});  # cache ссылка на {<key_cache>: result, ...}
-                if key_cache in cache:
-                    return cache[key_cache]
+                if not self.select_caches_disable:
+                    key_cache = hash(repr( (reverse, intersection, ckeys, seek, limit) ))
+                    cache = MDBOrm.select_caches.setdefault(table, {});  # cache ссылка на {<key_cache>: result, ...}
+                    if key_cache in cache:
+                        return cache[key_cache]
                 
                 
                 for ckey in ckeys:
@@ -621,8 +623,8 @@ class MDBOrm(MDB):
 
                     break
 
-
-                cache[key_cache] = result
+                if not self.select_caches_disable:
+                    cache[key_cache] = result
 
                                     
         return result
