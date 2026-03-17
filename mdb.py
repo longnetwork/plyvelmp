@@ -153,7 +153,7 @@ class MDB:
         
         self.path = path
 
-        self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '')
+        self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '').replace(':', '')
 
         self.shm = None; self.index = -1
 
