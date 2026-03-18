@@ -25,8 +25,8 @@ from .db import DB
 
 from .syslock import SysLock
 
-def maintainer(**kwargs):  # Для spawn - target процесса через жопу Била Гейтса
-    mdb_cls = globals()['MDB']; _maintainer = getattr(mdb_cls, '_MDB__maintainer'); _maintainer(**kwargs)
+def maintainer(*args, **kwargs):  # Для spawn - target процесса через жопу Била Гейтса
+    mdb_cls = globals()['MDB']; _maintainer = getattr(mdb_cls, '_MDB__maintainer'); _maintainer(*args, **kwargs)
 
 
 class MDB:
@@ -72,10 +72,9 @@ class MDB:
                 data  - данные ввода/вывода в литеральных b-строках (образованных от словаря);
     """
 
-    BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data
-    # assert BLOCK_SIZE >= 512
+    BLOCK_SIZE = DB.BLOCK_SIZE;  # Определяет максимальное число байт в data (эти константы классов должны быть одинаковыми)
+    # assert MDB.BLOCK_SIZE >= 512 and MDB.BLOCK_SIZE == DB.BLOCK_SIZE
     
-    # SALT = DB.SALT
     SALT = __qualname__ + 'muqpjaTWTcwHmmqL';  # alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
@@ -148,12 +147,14 @@ class MDB:
         
     def __init__(self, path='DB'):
 
-        assert MDB.BLOCK_SIZE >= 512
+        DB.BLOCK_SIZE = MDB.BLOCK_SIZE
+
+        assert MDB.BLOCK_SIZE >= 512 and MDB.BLOCK_SIZE == DB.BLOCK_SIZE
 
         
         self.path = path
 
-        self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '').replace(':', '')
+        self.salt = MDB.SALT + path.replace(os.path.pathsep, '').replace(os.path.sep, '').replace(':', '').replace(' ', '')
 
         self.shm = None; self.index = -1
 
@@ -177,10 +178,11 @@ class MDB:
                 MDB.__maintainer_proc = Process(
                     target=maintainer,
                     daemon=False,
-                    kwargs={
-                        # Передаем все что нужно (для всех способов создания дочернего процесса)
-                        'db_path': self.path, 'shm_name': self.salt,
-                    }
+
+                    # Передаем все что нужно (для всех способов создания дочернего процесса)
+                    args = (self.path, self.salt),
+                    # при re-imports в spawn-процессе переназначенные сейчас во вне константы снова переназначатся внутри __maintainer_proc
+                    kwargs={attr: getattr(MDB, attr, None) for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'BLOOMFILTER', 'MAX_PROCESSES')}
                 )
                 
                 MDB.__maintainer_proc.start()
@@ -239,17 +241,27 @@ class MDB:
         
             
     @staticmethod
-    def __maintainer(*, db_path, shm_name):  # pylint: disable=W0238,W0613
+    def __maintainer(db_path, shm_name, **kwargs):  # pylint: disable=W0238,W0613
         """
             Задача быстро без ожиданий обрабатывать заявки обращения к DB
             (из одного процесса levelDB поддерживает рандомный доступ)
+
+            XXX при spawn модули будут импортироваться заново и наши динамические настройки констант
+                уровня классов слетят - должны их передавать сюда
         """
         import signal
 
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
 
-        # Создание нового SharedMemory. FileExistsError не может быть (возможность проверяется под системной блокировкой ОС)
+        # Наследование констант при spawn-процессе
+        for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'BLOOMFILTER', 'MAX_PROCESSES'):
+            if (val := kwargs.get(attr)) is not None:
+                setattr(MDB, attr, val)
+                setattr(DB, attr, val)
+
+        # Создание нового SharedMemory. FileExistsError не может быть (возможность проверяется под системной блокировкой ОС)    
+
         
         shm = shared_memory.SharedMemory(
             name=shm_name, create=True,
@@ -303,10 +315,6 @@ class MDB:
 
         
         try:
-
-            for attr in ('SALT', 'BLOCK_SIZE', 'WRITE_BUFFER_SIZE', 'BLOOMFILTER'):
-                if (val := getattr(MDB, attr, None)) is not None:
-                    setattr(DB, attr, val)
 
             db = DB(db_path)
             

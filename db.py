@@ -23,10 +23,6 @@ class _DB:  # LevelDB не дается наследоваться
 
         XXX Инстанс базы должен быть один для данного path, и шарится глобально для всего приложения
     """
-
-    SALT = __qualname__ + 'IQyydZVKfILFCfcd'
-
-
     
     BLOCK_SIZE = 16 * 1024
     WRITE_BUFFER_SIZE = BLOCK_SIZE * 1024 * 16
