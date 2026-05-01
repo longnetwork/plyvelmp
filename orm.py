@@ -189,7 +189,7 @@ class MDBModel(dict):
 
     def __set_defaults(self):
         #  Не может затереть уже присутствующее значение в словаре
-        for attr, value in self.defaults().items():
+        for attr, value in type(self).defaults().items():
             
             if attr not in self:
                 if callable(value):
@@ -200,7 +200,7 @@ class MDBModel(dict):
                         
     def __check_required(self):
         # Все что аннотировано обязано быть в словаре (хотя бы в виде default-значений)
-        for field in self.annotations():
+        for field in type(self).annotations():
             if field not in self:
                 e = TypeError(f"Required field: '{field}'"); e.field = field
                 raise e
@@ -225,7 +225,7 @@ class MDBModel(dict):
 
         self.__set_defaults(); self.__check_required();  
 
-        for field, ann in self.annotations().items():  # После __check_required() аннотированые self[field] точно есть
+        for field, ann in type(self).annotations().items():  # После __check_required() аннотированые self[field] точно есть
             self[field] = self.__cast_value(self[field], ann)
 
             
@@ -237,7 +237,7 @@ class MDBModel(dict):
         if key == 'ikeys':
             raise AssertionError('ikeys can Not Change after Declaration')
 
-        if key in (a := self.annotations()):
+        if key in (a := type(self).annotations()):
             value = self.__cast_value(value, a[key])
             
         self[key] = value
@@ -247,13 +247,19 @@ class MDBModel(dict):
         if item in self:
             
             value = self[item]
-            if item in (a := self.annotations()):
+            if item in (a := type(self).annotations()):
                 value = self.__cast_value(value, a[item])
                 
             return value
             
         else:
-            return super().__getattribute__(item);  # Смотрит в уровни классов (в конце вернет default значения, если есть)
+            # Смотрит в уровни классов. В конце вернет default значения, если есть - защищаем их копией
+            value = super().__getattribute__(item);  
+
+            if item in (d := type(self).defaults()) and value is d[item]:
+                value = copy(value)
+            
+            return value
 
 
     def __delattr__(self, item):
@@ -281,7 +287,7 @@ class MDBModel(dict):
         """
             other может быть dict
         """
-        return { k: self.get(k) for k in self.comparables() } == { k: other.get(k) for k in self.comparables() }
+        return { k: self.get(k) for k in type(self).comparables() } == { k: other.get(k) for k in type(self).comparables() }
         
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -292,7 +298,7 @@ class MDBModel(dict):
             XXX При создании объектов timestamp делает объекты разными, но copy - одинаковыми (так как словари получается одинаковым)
         """
         
-        return hash(repr({ k: self.get(k) for k in self.comparables() }))
+        return hash(repr({ k: self.get(k) for k in type(self).comparables() }))
 
 
 
