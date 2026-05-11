@@ -319,7 +319,9 @@ class MDBOrm(MDB):
         
     ikeys_cache = {};   # Для кеширования результатов с inspect.getsource()
 
-    select_caches = {};  # select() кешируется потаблично до первой операции записи в таблицу
+    # select() кешируется потаблично до первой операции записи в таблицу
+    # {table: [wcount, {<key_cache>: result, ...}], ...} 
+    select_caches = {}
 
 
     @staticmethod
@@ -340,7 +342,7 @@ class MDBOrm(MDB):
         return ckeys, ikeys
 
 
-    def __init__(self, path='DB', *, select_caches_disable=False):
+    def __init__(self, path='DB'):
         """
             В суппер классе есть статические переменные с доступом через имя класса MDB.xxx (из статических методов без self),
             поэтому должны предоставить механизм их перекрытия в наследниках (как глобальных констант)
@@ -353,8 +355,6 @@ class MDBOrm(MDB):
                 setattr(MDB, attr, val)
             
         super().__init__(path)
-
-        self.select_caches_disable = select_caches_disable
 
 
     def _insert(self, table, /, data: dict, *, ikeys='items'):
@@ -599,11 +599,16 @@ class MDBOrm(MDB):
         if limit > 0:
             with self.plock:
 
-                if not self.select_caches_disable:
-                    key_cache = hash(repr( (reverse, intersection, ckeys, seek, limit) ))
-                    cache = MDBOrm.select_caches.setdefault(table, {});  # cache ссылка на {<key_cache>: result, ...}
-                    if key_cache in cache:
-                        return cache[key_cache]
+                wcount = super().get(table[:-1] + '#wcount') or 0;  # Счетчик записей
+
+                key_cache = hash(repr( (reverse, intersection, ckeys, seek, limit) ))
+                cache = MDBOrm.select_caches.setdefault(table, [0, {}]);  # cache ссылка на [wcount, {<key_cache>: result, ...}]
+                
+                if wcount == cache[0]:
+                    if key_cache in cache[1]:
+                        return cache[1][key_cache]
+                else:
+                    cache[1].clear()
                 
                 
                 for ckey in ckeys:
@@ -629,9 +634,7 @@ class MDBOrm(MDB):
 
                     break
 
-                if not self.select_caches_disable:
-                    cache[key_cache] = result
-
+                cache[0] = wcount; cache[1][key_cache] = result
                                     
         return result
 
