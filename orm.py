@@ -599,7 +599,8 @@ class MDBOrm(MDB):
         if limit > 0:
             with self.plock:
 
-                wcount = super().get(table[:-1] + '#wcount') or 0;  # Счетчик записей
+                # XXX Изменение таблицы может быть в другом процессе и мы обязаны проверить это по wcount для cache
+                wcount = super().get(table[:-1] + '#wcount') or 0
 
                 key_cache = hash(repr( (reverse, intersection, ckeys, seek, limit) ))
                 cache = MDBOrm.select_caches.setdefault(table, [0, {}]);  # cache ссылка на [wcount, {<key_cache>: result, ...}]
