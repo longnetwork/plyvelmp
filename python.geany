@@ -23,15 +23,16 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=7
+current_page=2
 FILE_NAME_0=793;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fsyslock.py;0;4
-FILE_NAME_1=122;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fsetup.py;0;4
-FILE_NAME_2=6819;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fmdb.py;0;4
+FILE_NAME_1=370;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fsetup.py;0;4
+FILE_NAME_2=21694;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fmdb.py;0;4
 FILE_NAME_3=0;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2FREADME.md;0;4
 FILE_NAME_4=687;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Ftest%2Finfo.md;0;4
 FILE_NAME_5=0;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Ftest%2Fsyslocking.py;0;4
-FILE_NAME_6=915;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2FDEV.md;0;4
-FILE_NAME_7=0;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Form.py;0;4
+FILE_NAME_6=733;Markdown;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2FDEV.md;0;4
+FILE_NAME_7=22;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Form.py;0;4
+FILE_NAME_8=6167;Python;0;EUTF-8;0;1;0;%2Fhome%2Fmint%2FWork%2Fplyvelmp%2Fdb.py;0;4
 
 [VTE]
 last_dir=/home/mint/Work/plyvelmp

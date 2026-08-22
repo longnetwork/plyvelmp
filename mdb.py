@@ -79,7 +79,7 @@ class MDB:
 
 
     # Мы можем подключаться из другой программы, где объекты синхронизации не доступны (работаем в режиме software lock)
-    TICK = SysLock.TICK = sys.getswitchinterval() / 3
+    TICK = SysLock.TICK = sys.getswitchinterval() / 6
     
     assert TICK > 0.0000001
 
@@ -330,8 +330,12 @@ class MDB:
                 # Ищем не idle - задачи
                 tasks = MDB.__get_tasks(shm.buf)
 
+                idle = True
                 # Нас интересуют только запросы
                 for i, t in enumerate(tasks):
+
+                    if t != MDB.STATE_IDLE:
+                        idle = False
 
                     if t == MDB.STATE_REQUEST:
 
@@ -439,7 +443,6 @@ class MDB:
                         except Exception as e:
                             _put_responce(i, {'error': str(e)});  # XXX assert BLOCK_SIZE >= 512 (Ошибка должна влезть всегда)
 
-
                     # Клининг итераторов - Это происходит когда объект подключения так или иначе закрывается
                     # Если будет новое подключение то он либо займет новый слот или этот-же
                     # (так как мы даем shm.buf[MDB.__seek_lock(i)] = False)
@@ -457,8 +460,8 @@ class MDB:
 
                         shm.buf[MDB.__seek_lock(i)] = False;  # Слот освобожден для новых захватов. 1 байт - атомарная операция
 
-
-                sleep(MDB.TICK)
+                if idle:
+                    sleep(MDB.TICK);  # FIXME: Ускорение без уменьшения TICK (и нагружения CPU) предполагает TICK адаптивным
                     
         finally:
 
@@ -510,7 +513,8 @@ class MDB:
         
         while self.shm.buf[_lock]:
             if self.shm.buf[_state] != MDB.STATE_RESPONCE:
-                sleep(MDB.TICK)
+                if idle:
+                    sleep(MDB.TICK)
             else:
                 break
         else:
